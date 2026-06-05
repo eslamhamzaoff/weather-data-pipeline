@@ -1,0 +1,22 @@
+[
+  {
+    "city": "Cairo",
+    "latitude": 30.0444,
+    "longitude": 31.2357
+  },
+  {
+    "city": "Alexandria",
+    "latitude": 31.2001,
+    "longitude": 29.9187
+  },
+  {
+    "city": "Dubai",
+    "latitude": 25.2048,
+    "longitude": 55.2708
+  },
+  {
+    "city": "Riyadh",
+    "latitude": 24.7136,
+    "longitude": 46.6753
+  }
+]

@@ -8,15 +8,21 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-def get_weather_data():
+
+def load_city_config():
+    with open("config/cities.json", "r") as f:
+        return json.load(f)
+
+
+def get_weather_data(city):
     url = (
-        "https://api.open-meteo.com/v1/forecast"
-        "?latitude=30.0444"
-        "&longitude=31.2357"
-        "&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
+        f"https://api.open-meteo.com/v1/forecast"
+        f"?latitude={city['latitude']}"
+        f"&longitude={city['longitude']}"
+        f"&current=temperature_2m,relative_humidity_2m,wind_speed_10m"
     )
     
-    response = requests.get(url , timeout=30)
+    response = requests.get(url, timeout=30)
     response.raise_for_status()
     return response.json()
 
@@ -33,47 +39,49 @@ def get_snowflake_connection():
     )
 
 
-
-def load_to_snowflake(weather_json):
+def load_to_snowflake(city_name, weather_json):
     conn = get_snowflake_connection()
-    
     cursor = conn.cursor()
 
     insert_sql = """
     INSERT INTO WEATHER_API_DATA
     (
-    INGESTION_TIMESTAMP,
-    SOURCE,
-    RAW_PAYLOAD
+        INGESTION_TIMESTAMP,
+        CITY,
+        SOURCE,
+        RAW_PAYLOAD
     )
     SELECT
-    CURRENT_TIMESTAMP(),
-    'OPEN_METEO',
-    PARSE_JSON(%s)
+        CURRENT_TIMESTAMP(),
+        %s,
+        'OPEN_METEO',
+        PARSE_JSON(%s)
     """
 
     cursor.execute(
         insert_sql,
-        (json.dumps(weather_json),)
+        (city_name, json.dumps(weather_json)) 
     )
 
     conn.commit()
-
     cursor.close()
     conn.close()
 
+
 def main():
-    print("Fetching weather data...")
+    cities = load_city_config()
 
-    weather_data = get_weather_data()
-
-    print("Loading into Snowflake...")
-
-    load_to_snowflake(weather_data)
-
-    print("Load completed successfully.")
+    for city in cities:  
+        print(f"Fetching weather for {city['city']}")
+        
+        weather_data = get_weather_data(city)  
+        
+        print("Loading into Snowflake...")
+        
+        load_to_snowflake(city['city'], weather_data)  
+        
+        print(f"Load completed for {city['city']}.\n")
 
 
 if __name__ == "__main__":
     main()
-
